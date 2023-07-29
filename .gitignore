@@ -1,0 +1,7 @@
+.env
+.idea
+venv
+.vagrant
+*.retry
+__pycache__
+migrations
