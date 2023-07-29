@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Grafana One-Page Dynamic Board
+{% endblock %}
+
+{% block content %}
+<h1>Grafana One-Page Dynamic Board</h1>
+{% if not grafana_server_url %}
+    <div>
+        <p>You are not connected to the Grafana server. Please input the connection details in the Settings menu.</p>
+        <!-- Settings menu for connecting to Grafana server -->
+        <h2>Connect to Grafana Server</h2>
+        <form method="post">
+            {% csrf_token %}
+            <label for="url">Grafana Server URL:</label>
+            <input type="url" id="url" name="url" required><br><br>
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required><br><br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required><br><br>
+            <label for="folder">Dashboard Folder:</label>
+            <input type="text" id="folder" name="folder" required><br><br>
+            <input type="submit" value="Connect">
+        </form>
+    </div>
+{% else %}
+
+    <p>Connected to Grafana Server: {{ grafana_server_url }}</p>
+
+    <!-- Form for selecting dashboards from the specified folder -->
+    <div id="dashboard-list">
+        <form method="post">
+            {% csrf_token %}
+            <label for="selected_dashboards">Select Dashboards:</label>
+            <select name="selected_dashboards" id="selected_dashboards" multiple>
+                {% for dashboard in dashboards %}
+                    <option value="{{ dashboard.dashboard_uid }}">{{ dashboard.title }}</option>
+                {% endfor %}
+            </select><br><br>
+            <input type="submit" name="action" value="Select Dashboards">
+        </form>
+    </div>
+
+<!-- Dropdown-list to select panels -->
+<div id="panel-list">
+    {% if selected_dashboards %}
+    <form method="post">
+        {% csrf_token %}
+        <label for="selected_panels">Select Panels:</label>
+        <select name="selected_panels" id="selected_panels" multiple>
+            {% for panel_data in panels_data %}
+                <option value="{{ panel_data.id }}">{{ panel_data.title }}</option>
+            {% endfor %}
+        </select><br><br>
+        <input type="submit" name="action" value="Select Panels" onclick="reloadPage()">
+    </form>
+    {% endif %}
+</div>
+
+<script>
+    // Function to reload the page after submitting the "Select Panels" form
+    function reloadPage() {
+        setTimeout(function () {
+            location.reload();
+        }, 100); // Adjust the timeout as needed
+    }
+</script>
+
+    <!-- Display dashboard title and embedded board -->
+    <div id="dashboard-info">
+        <h2 id="dashboard-title">{{ dashboard_title }}</h2>
+        <div class="board-slide">
+            <iframe id="board-iframe" width="800" height="600" frameborder="0" src="{{ embed_url }}"></iframe>
+        </div>
+    </div>
+
+{% endif %}
+{% endblock %}

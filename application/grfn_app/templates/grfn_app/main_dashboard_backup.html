@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}
+Grafana One-Page Dynamic Board
+{% endblock %}
+
+{% block content %}
+<h1>Grafana One-Page Dynamic Board</h1>
+{% if not grafana_server_url %}
+    <div>
+        <p>You are not connected to the Grafana server. Please input the connection details in the Settings menu.</p>
+        <!-- Settings menu for connecting to Grafana server -->
+        <h2>Connect to Grafana Server</h2>
+        <form method="post">
+            {% csrf_token %}
+            <label for="url">Grafana Server URL:</label>
+            <input type="url" id="url" name="url" required><br><br>
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required><br><br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required><br><br>
+            <label for="folder">Dashboard Folder:</label>
+            <input type="text" id="folder" name="folder" required><br><br>
+            <input type="submit" value="Connect">
+        </form>
+    </div>
+{% else %}
+
+    <p>Connected to Grafana Server: {{ grafana_server_url }}</p>
+
+    <!-- Dropdown list to choose dashboards (as shown in Step 5) -->
+    <form method="post">
+        {% csrf_token %}
+        <label for="dashboard">Choose Dashboards:</label>
+        <select id="dashboard" name="dashboard">
+            {% for dashboard in dashboards %}
+                <option value="{{ dashboard.id }}">{{ dashboard.title }}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" value="Load Dashboard">
+    </form>
+
+    <!-- Dropdown menu to choose the changing interval (as shown in Step 6) -->
+    <form method="post">
+        {% csrf_token %}
+        <label for="interval">Choose Changing Interval:</label>
+        <select id="interval" name="interval">
+            {% for option in interval_options %}
+                <option value="{{ option }}" {% if option == selected_interval %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" value="Update Interval">
+    </form>
+
+    <!-- Dropdown menu to choose the Default time range (as shown in Step 7) -->
+    <form method="post" id="default-time-range-form">
+        {% csrf_token %}
+        <label for="default_time_range">Choose Default Time Range:</label>
+        <select id="default_time_range" name="default_time_range">
+            {% for option in default_time_range_options %}
+                <option value="{{ option }}" {% if option == selected_default_time_range %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" value="Apply Default Time Range">
+    </form>
+
+    <!-- Alerting board switch (as shown in Step 8) -->
+    <form method="post">
+        {% csrf_token %}
+        <label for="alerting_board_switch">Alerting Board Switch:</label>
+        <select id="alerting_board_switch" name="alerting_board_switch">
+            {% for option in alerting_board_switch_options %}
+                <option value="{{ option }}" {% if option == alerting_board_switch %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" value="Update Alerting Board Switch">
+    </form>
+
+    <!-- Banner for alerting boards (as shown in Step 13) -->
+    {% if alerting_board_switch == 'On' %}
+        <div id="alert-banner" style="display: none;">
+            <h2>Alerting Boards:</h2>
+            <select id="alerting-board-select" onchange="showSelectedAlertingBoard()">
+                {% for alerting_board in alerting_boards %}
+                    <option value="{{ alerting_board.board_id }}">{{ alerting_board.board_title }}</option>
+                {% endfor %}
+            </select>
+            <button id="ignore-alerts-button" onclick="closeAlertBanner()">Ignore Alerts</button>
+        </div>
+    {% endif %}
+
+    <!-- Stop/Play button (as shown in Step 9) -->
+    <form method="post">
+        {% csrf_token %}
+        <label for="stop_play_state">Stop/Play Button:</label>
+        <select id="stop_play_state" name="stop_play_state">
+            {% for option in stop_play_options %}
+                <option value="{{ option }}" {% if option == stop_play_state %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" value="Update Stop/Play">
+    </form>
+
+    <!-- Settings menu (as shown in Step 10) -->
+    <h2>Settings</h2>
+    <p>Connected Grafana Server: {{ grafana_server_url }}</p>
+    <form method="post">
+        {% csrf_token %}
+        <label for="url">Grafana Server URL:</label>
+        <input type="url" id="url" name="url" value="{{ grafana_server_url }}" required><br><br>
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required><br><br>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required><br><br>
+        <label for="folder">Dashboard Folder:</label>
+        <input type="text" id="folder" name="folder" required><br><br>
+        <input type="submit" value="Connect">
+    </form>
+    <p>Note: If you have already connected to the Grafana server, updating the connection details will require a page refresh.</p>
+
+<!-- Dropdown list to choose dashboards (as shown in Step 5) -->
+    <form method="post">
+        {% csrf_token %}
+        <label for="dashboard">Choose Dashboards:</label>
+        <select id="dashboard" name="dashboard">
+            {% for dashboard in dashboards %}
+                <option value="{{ dashboard.id }}">{{ dashboard.title }}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" value="Load Dashboard">
+    </form>
+
+    {% for dashboard in selected_dashboards %}
+        <h3>{{ dashboard.title }}</h3>
+        {% with dashboard_options=dashboard_board_options|get_item:dashboard.title %}
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="dashboard_uid" value="{{ dashboard.uid }}">
+                <label for="selected_boards_{{ dashboard.id }}">Choose Boards to Display:</label>
+                <select id="selected_boards_{{ dashboard.id }}" name="selected_boards_{{ dashboard.id }}" multiple>
+                    {% for board in dashboard.boards.all %}
+                        <option value="{{ board.board_id }}" {% if board.board_id in dashboard_options %}selected{% endif %}>Board {{ board.board_id }}</option>
+                    {% endfor %}
+                </select>
+                <input type="submit" value="Update Boards">
+            </form>
+        {% endwith %}
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="dashboard_uid" value="{{ dashboard.uid }}">
+            <label for="time_range_{{ dashboard.id }}">Set Time Range for Boards:</label>
+            <select id="time_range_{{ dashboard.id }}" name="time_range_{{ dashboard.id }}">
+                <option value="Custom" {% if 'Custom' in dashboard_time_range_options|get_item:dashboard.title %}selected{% endif %}>Custom</option>
+                <option value="Default" {% if 'Default' in dashboard_time_range_options|get_item:dashboard.title %}selected{% endif %}>Default</option>
+            </select>
+            {% if 'Custom' in dashboard_time_range_options|get_item:dashboard.title %}
+                <label for="custom_time_range_{{ dashboard.id }}">Custom Time Range:</label>
+                <select id="custom_time_range_{{ dashboard.id }}" name="custom_time_range_{{ dashboard.id }}">
+                    <option value="Last 5 minutes">Last 5 minutes</option>
+                    <option value="Last 15 minutes">Last 15 minutes</option>
+                    <option value="Last 30 minutes">Last 30 minutes</option>
+                    <option value="Last 1 hour">Last 1 hour</option>
+                    <option value="Last 6 hours">Last 6 hours</option>
+                    <option value="Last 12 hours">Last 12 hours</option>
+                    <option value="Last 24 hours">Last 24 hours</option>
+                    <option value="Last 2 days">Last 2 days</option>
+                    <option value="Last 7 days">Last 7 days</option>
+                    <option value="Last 30 days">Last 30 days</option>
+                </select>
+            {% endif %}
+            <input type="submit" value="Update Time Range">
+        </form>
+    {% endfor %}
+
+    <!-- Display embedded boards from the Grafana server -->
+    <div id="boards-container">
+        {% for dashboard in selected_dashboards %}
+            {% with embed_urls_for_dashboard=embed_urls|get_item:dashboard.title %}
+                {% for board_id, embed_url in embed_urls_for_dashboard.items %}
+                    {% if embed_url %}
+                        <div class="board-slide">
+                            <iframe src="{{ embed_url }}" width="800" height="600" frameborder="0"></iframe>
+                        </div>
+                    {% else %}
+                        <p>Failed to load board with ID {{ board_id }}</p>
+                    {% endif %}
+                {% endfor %}
+            {% endwith %}
+        {% endfor %}
+    </div>
+
+    <!-- JavaScript code for slide-show and Stop/Play button -->
+    <script>
+        // Get all the board slides and set the current slide index
+        var boardSlides = document.querySelectorAll('.board-slide');
+        var currentSlideIndex = 0;
+
+        // Function to show the current slide and hide other slides
+        function showSlide(slideIndex) {
+            for (var i = 0; i < boardSlides.length; i++) {
+                if (i === slideIndex) {
+                    boardSlides[i].style.display = 'block';
+                } else {
+                    boardSlides[i].style.display = 'none';
+                }
+            }
+        }
+
+        // Function to change the slide in a slide-show manner
+        function changeSlide() {
+            currentSlideIndex = (currentSlideIndex + 1) % boardSlides.length;
+            showSlide(currentSlideIndex);
+        }
+
+        // Function to start the slide-show with the selected changing interval
+        function startSlideShow(interval) {
+            showSlide(currentSlideIndex); // Show the first slide initially
+            return setInterval(changeSlide, interval * 1000); // Start the slide-show with the specified interval
+        }
+
+        // Handle the Stop/Play button
+        var stopPlayButton = document.getElementById('stop_play_state');
+        var slideShowInterval;
+        var isSlideShowRunning = true; // Slide-show starts running by default
+
+        stopPlayButton.addEventListener('click', function () {
+            if (isSlideShowRunning) {
+                // If the slide-show is running, stop it
+                clearInterval(slideShowInterval);
+                stopPlayButton.value = 'Play';
+            } else {
+                // If the slide-show is stopped, start it with the selected interval
+                var selectedInterval = document.getElementById('interval').value;
+                slideShowInterval = startSlideShow(getIntervalInSeconds(selectedInterval));
+                stopPlayButton.value = 'Stop';
+            }
+            isSlideShowRunning = !isSlideShowRunning; // Toggle the slide-show state
+        });
+
+        // Function to convert interval options to seconds
+        function getIntervalInSeconds(selectedInterval) {
+            var intervalMapping = {
+                '5 seconds': 5,
+                '10 seconds': 10,
+                '30 seconds': 30,
+                '1 minute': 60,
+                '5 minutes': 300,
+                '1 hour': 3600,
+            };
+            return intervalMapping[selectedInterval];
+        }
+
+        // Get the initial slide-show interval and start the slide-show
+        var initialInterval = document.getElementById('interval').value;
+        slideShowInterval = startSlideShow(getIntervalInSeconds(initialInterval));
+        // Function to show the alert banner when there are alerting boards
+        function showAlertBanner() {
+            var alertBanner = document.getElementById('alert-banner');
+            alertBanner.style.display = 'block';
+        }
+
+        // Function to close the alert banner when "Ignore Alerts" button is clicked
+        function closeAlertBanner() {
+            var alertBanner = document.getElementById('alert-banner');
+            alertBanner.style.display = 'none';
+            resumeSlideShow(); // Resume slide-show when the banner is closed
+        }
+
+        // Function to handle the selection of alerting boards in the banner
+        function showSelectedAlertingBoard() {
+            var alertingBoardSelect = document.getElementById('alerting-board-select');
+            var selectedBoardId = alertingBoardSelect.value;
+            var selectedBoardIndex = -1;
+
+            // Find the index of the selected alerting board
+            for (var i = 0; i < alertingBoards.length; i++) {
+                if (alertingBoards[i].board_id === selectedBoardId) {
+                    selectedBoardIndex = i;
+                    break;
+                }
+            }
+
+            // Show the selected alerting board slide
+            if (selectedBoardIndex !== -1) {
+                currentSlideIndex = selectedBoardIndex;
+                showSlide(currentSlideIndex);
+            }
+        }
+
+        // Get the initial slide-show interval and start the slide-show
+        var initialInterval = document.getElementById('interval').value;
+        var slideShowInterval = startSlideShow(getIntervalInSeconds(initialInterval));
+
+        // Check for alerting boards and display the banner if needed
+        {% if alerting_board_switch == 'On' %}
+            var alertingBoards = [
+                {% for alerting_board in alerting_boards %}
+                    {
+                        board_id: "{{ alerting_board.board_id }}",
+                        board_title: "{{ alerting_board.board_title }}"
+                    },
+                {% endfor %}
+            ];
+
+            if (alertingBoards.length > 0) {
+                showAlertBanner();
+                pauseSlideShow(); // Pause slide-show if there are alerting boards
+            }
+        {% endif %}
+    </script>
+
+    <!-- JavaScript code for handling default time range form submission -->
+    <script>
+        // Event listener for default time range form submission
+        document.getElementById('default-time-range-form').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the form from being submitted in the traditional way
+
+            // Get the selected default time range value
+            var selectedDefaultTimeRange = document.getElementById('default_time_range').value;
+
+            // Get all the board slides and update their embed URLs with the new time range
+            var boardSlides = document.querySelectorAll('.board-slide');
+            boardSlides.forEach(function(slide) {
+                var iframe = slide.querySelector('iframe');
+                var currentSrc = iframe.getAttribute('src');
+                var newSrc = updateQueryStringParameter(currentSrc, 'from', selectedDefaultTimeRange);
+                iframe.setAttribute('src', newSrc);
+            });
+        });
+
+        // Function to update a query parameter in a URL
+        function updateQueryStringParameter(uri, key, value) {
+            var re = new RegExp('([?&])' + key + '=.*?(&|$)', 'i');
+            var separator = uri.indexOf('?') !== -1 ? '&' : '?';
+            if (uri.match(re)) {
+                return uri.replace(re, '$1' + key + '=' + value + '$2');
+            } else {
+                return uri + separator + key + '=' + value;
+            }
+        }
+    </script>
+
+{% endif %}
+{% endblock %}
