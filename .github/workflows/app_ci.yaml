@@ -1,0 +1,69 @@
+# .gihub/workflows/app_ci.yaml
+name: Application-related CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+    - "application/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.x]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Set up MariaDB
+      run:
+        echo "GRANT ALL PRIVILEGES ON \`test_${{ secrets.DB_NAME }}\`.* TO '${{ secrets.DB_USER }}'@'%';
+        GRANT ALL PRIVILEGES ON \`${{ secrets.DB_NAME }}\`.* TO '${{ secrets.DB_USER }}'@'%';
+        FLUSH PRIVILEGES;" > init.sql
+        docker run --name mariadb -d \
+        -e MARIADB_ROOT_PASSWORD='${{ secrets.DB_ROOT_PASSWORD }}' \
+        -e MARIADB_DATABASE='${{ secrets.DB_NAME }}' \
+        -e MARIADB_USER='${{ secrets.DB_USER }}' \
+        -e MARIADB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
+        -v $PWD/init.sql:/docker-entrypoint-initdb.d/init.sql \
+        -p 3306:3306 \
+        mariadb \
+        --character-set-server=utf8 --collation-server=utf8_bin \
+        --init-file /docker-entrypoint-initdb.d/init.sql
+
+    - name: Install Dependencies
+      run: |
+        cd application
+        python -m pip install --upgrade pip       
+        pip install -r requirements.txt
+
+    - name: Run Tests
+      env:
+        DB_NAME: ${{ secrets.DB_NAME }}
+        DB_USER: ${{ secrets.DB_USER }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        DB_HOST: 127.0.0.1
+        DB_PORT: 3306
+        DEBUG: TRUE
+      run: |
+        cd application
+        python manage.py test
+
+    - name: Login to GitHub Container Registry
+      run: |
+        echo "${{ secrets.GIT_PAT }}" | sudo docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build -t ghcr.io/danilgotvyansky/grafana_onepage_project:latest application
+        docker push ghcr.io/danilgotvyansky/grafana_onepage_project:latest
