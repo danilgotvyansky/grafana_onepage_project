@@ -1,3 +1,4 @@
+<!-- application/grfn_app/templates/grfn_app/main_dashboard.html -->
 {% extends 'base.html' %}
 
 {% block title %}
@@ -11,24 +12,36 @@ Grafana One-Page Dynamic Board
         <p>You are not connected to the Grafana server. Please input the connection details in the Settings menu.</p>
         <!-- Settings menu for connecting to Grafana server -->
         <h2>Connect to Grafana Server</h2>
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
         <form method="post">
             {% csrf_token %}
             <label for="url">Grafana Server URL:</label>
-            <input type="url" id="url" name="url" required><br><br>
+            <input type="url" id="url" name="url" required
+                   oninvalid="this.setCustomValidity('Please enter a valid Grafana server link(e.g. http://IP:port or https://domain.com). ')"
+                   oninput="this.setCustomValidity('')"><br><br>
             <label for="username">Username:</label>
             <input type="text" id="username" name="username" required><br><br>
             <label for="password">Password:</label>
             <input type="password" id="password" name="password" required><br><br>
-            <label for="folder">Dashboard Folder:</label>
-            <input type="text" id="folder" name="folder" required><br><br>
             <input type="submit" value="Connect">
         </form>
     </div>
 {% else %}
 
-    <p>Connected to Grafana Server: {{ grafana_server_url }}</p>
-
-    <!-- Form for selecting dashboards from the specified folder -->
+    <div style="display: flex; align-items: center">
+    <p style="margin-right: 20px;">Connected to Grafana Server: {{ grafana_server_url }}</p>
+    <form action="{% url 'disconnect_grafana' %}" method="post">
+        {% csrf_token %}
+        <input type="submit" value="Reconnect to Grafana Server">
+    </form>
+    </div>
+    <!-- Form for selecting starred dashboards -->
     <div id="dashboard-list">
         <form method="post">
             {% csrf_token %}
@@ -39,39 +52,63 @@ Grafana One-Page Dynamic Board
                 {% endfor %}
             </select><br><br>
             <input type="submit" name="action" value="Select Dashboards">
+            </div>
         </form>
     </div>
 
-<!-- Dropdown-list to select panels -->
-<div id="panel-list">
-    {% if selected_dashboards %}
-    <form method="post">
-        {% csrf_token %}
-        <label for="selected_panels">Select Panels:</label>
-        <select name="selected_panels" id="selected_panels" multiple>
-            {% for panel_data in panels_data %}
-                <option value="{{ panel_data.id }}">{{ panel_data.title }}</option>
-            {% endfor %}
-        </select><br><br>
-        <input type="submit" name="action" value="Select Panels" onclick="reloadPage()">
-    </form>
-    {% endif %}
-</div>
+    <!-- Dropdown-list to select panels -->
+    <div id="panel-list">
+        {% if selected_dashboards %}
+        <form method="post">
+            {% csrf_token %}
+            <label for="selected_panels">Select Panels:</label>
+            <select name="selected_panels" id="selected_panels" multiple>
+                {% for panel_data in panels_data %}
+                    <option value="{{ panel_data.id }}">{{ panel_data.title }}</option>
+                {% endfor %}
+            </select><br><br>
+            <input type="submit" name="action" value="Select Panels">
+        </form>
+        {% endif %}
+    </div>
 
-<script>
-    // Function to reload the page after submitting the "Select Panels" form
-    function reloadPage() {
-        setTimeout(function () {
-            location.reload();
-        }, 100); // Adjust the timeout as needed
-    }
-</script>
+    <!-- Dropdown-list to select Default time range -->
+    <div id="time-range-list">
+        <form method="post">
+            {% csrf_token %}
+            <label for="time_range">Default Time Range:</label>
+            <select name="time_range" id="time_range">
+                <option value="5m" {% if selected_panel.time_range == "5m" %}selected{% endif %}>Last 5 minutes</option>
+                <option value="15m" {% if selected_panel.time_range == "15m" %}selected{% endif %}>Last 15 minutes</option>
+                <option value="30m" {% if selected_panel.time_range == "30m" %}selected{% endif %}>Last 30 minutes</option>
+                <option value="1h" {% if selected_panel.time_range == "1h" %}selected{% endif %}>Last 1 hour</option>
+                <option value="3h" {% if selected_panel.time_range == "3h" %}selected{% endif %}>Last 3 hours</option>
+                <option value="6h" {% if selected_panel.time_range == "6h" %}selected{% endif %}>Last 6 hours</option>
+                <option value="12h" {% if selected_panel.time_range == "12h" %}selected{% endif %}>Last 12 hours</option>
+                <option value="24h" {% if selected_panel.time_range == "24h" %}selected{% endif %}>Last 24 hours</option>
+                <option value="3d" {% if selected_panel.time_range == "3d" %}selected{% endif %}>Last 3 days</option>
+                <option value="7d" {% if selected_panel.time_range == "7d" %}selected{% endif %}>Last 7 days</option>
+                <option value="30d" {% if selected_panel.time_range == "30d" %}selected{% endif %}>Last 30 days</option>
+            </select><br><br>
+            <input type="hidden" name="selected_panels" value="{{ selected_panel.panel_id }}">
+            <input type="submit" name="action" value="Select Time Range" onclick="reloadPage()">
+        </form>
+    </div>
+
+    <script>
+        // Function to reload the page after submitting the "Select Panels" form
+        function reloadPage() {
+            setTimeout(function () {
+                location.reload();
+            }, 100); // Adjust the timeout as needed
+        }
+    </script>
 
     <!-- Display dashboard title and embedded board -->
     <div id="dashboard-info">
         <h2 id="dashboard-title">{{ dashboard_title }}</h2>
         <div class="board-slide">
-            <iframe id="board-iframe" width="800" height="600" frameborder="0" src="{{ embed_url }}"></iframe>
+            <iframe id="board-iframe" width="800" height="600" frameborder="0" src="{{ embed_url }}&from=now&to=now-{{ selected_panel.time_range }}"></iframe>
         </div>
     </div>
 
