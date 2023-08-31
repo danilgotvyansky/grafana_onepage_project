@@ -41,34 +41,63 @@ Grafana One-Page Dynamic Board
         <input type="submit" value="Reconnect to Grafana Server">
     </form>
     </div>
-    <!-- Form for selecting starred dashboards -->
+
+     <!-- Display selected panels -->
+    {% if selected_panels %}
+    <div id="selected-panels">
+        <h5>Selected Panels: </h5>
+        <div style="height:60px; overflow:auto;">
+            {% for panel in selected_panels %}
+                {{ panel.panel_title }} from {{ panel.dashboard.title }}<br>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% endif %}
+
+    <!-- Display a container having all the panels -->
+    <div id="selected-panels-container">
+        {% for panel in selected_panels %}
+        <iframe class="panel-iframe" id="panel-iframe-{{ forloop.counter }}" src="{{ panel.embed_url }}&from=now&to=now-{{ panel.time_range }}"></iframe>
+        {% endfor %}
+    </div>
+
+    <!-- Buttons to switch between panels -->
+    <button onclick="prevPanel()">Previous</button>
+    <button onclick="nextPanel()">Next</button>
+
+    <h3>Settings:</h3>
+
+    <!-- Form for selecting multiple starred dashboards -->
     <div id="dashboard-list">
         <form method="post">
             {% csrf_token %}
             <label for="selected_dashboards">Select Dashboards:</label>
-            <select name="selected_dashboards" id="selected_dashboards" multiple>
+            <div style="height:60px; overflow:auto;">
                 {% for dashboard in dashboards %}
-                    <option value="{{ dashboard.dashboard_uid }}">{{ dashboard.title }}</option>
+                    <input type="checkbox" id="selected_dashboards" name="selected_dashboards" value="{{ dashboard.dashboard_uid }}">
+                    <label for="{{ dashboard.dashboard_uid }}">{{ dashboard.title }}</label><br>
                 {% endfor %}
-            </select><br><br>
-            <input type="submit" name="action" value="Select Dashboards">
             </div>
+            <input type="submit" name="action" value="Select Dashboards">
         </form>
     </div>
-
-    <!-- Dropdown-list to select panels -->
+    <br>
+    <!-- Select multiple panels -->
     <div id="panel-list">
         {% if selected_dashboards %}
         <form method="post">
             {% csrf_token %}
             <label for="selected_panels">Select Panels:</label>
-            <select name="selected_panels" id="selected_panels" multiple>
+            <div style="height:150px; overflow:auto;">
                 {% for panel_data in panels_data %}
-                    <option value="{{ panel_data.id }}">{{ panel_data.title }}</option>
+                    <input type="checkbox" id="selected_panels" name="selected_panels" value="{{ panel_data.panel_id }}">
+                    <label for="{{ panel_data.panel_id }}">{{ panel_data.panel_title }}</label><br>
                 {% endfor %}
-            </select><br><br>
+            </div>
             <input type="submit" name="action" value="Select Panels">
         </form>
+        <br>
         {% endif %}
     </div>
 
@@ -89,7 +118,7 @@ Grafana One-Page Dynamic Board
                 <option value="3d" {% if selected_panel.time_range == "3d" %}selected{% endif %}>Last 3 days</option>
                 <option value="7d" {% if selected_panel.time_range == "7d" %}selected{% endif %}>Last 7 days</option>
                 <option value="30d" {% if selected_panel.time_range == "30d" %}selected{% endif %}>Last 30 days</option>
-            </select><br><br>
+            </select><br>
             <input type="hidden" name="selected_panels" value="{{ selected_panel.panel_id }}">
             <input type="submit" name="action" value="Select Time Range" onclick="reloadPage()">
         </form>
@@ -104,13 +133,41 @@ Grafana One-Page Dynamic Board
         }
     </script>
 
-    <!-- Display dashboard title and embedded board -->
-    <div id="dashboard-info">
-        <h2 id="dashboard-title">{{ dashboard_title }}</h2>
-        <div class="board-slide">
-            <iframe id="board-iframe" width="800" height="600" frameborder="0" src="{{ embed_url }}&from=now&to=now-{{ selected_panel.time_range }}"></iframe>
-        </div>
-    </div>
+    <!-- JavaScript for switching between panels -->
+    <script>
+        let currentPanelIndex = 0;
+        let numberOfPanels = parseInt("{{ selected_panels.count }}", 10);
+
+        // Initially show the first panel
+        document.getElementById("panel-iframe-1").style.display="block";
+
+        function nextPanel(){
+            // Hide the current panel
+            document.getElementById("panel-iframe-" + (currentPanelIndex + 1)).style.display="none";
+            // Increment the current panel index
+            currentPanelIndex = (currentPanelIndex + 1) % numberOfPanels;
+            // Show the next panel
+            document.getElementById("panel-iframe-" + (currentPanelIndex + 1)).style.display="block";
+        }
+
+        function prevPanel(){
+            // Hide the current panel
+            document.getElementById("panel-iframe-" + (currentPanelIndex + 1)).style.display="none";
+            // Decrement the current panel index
+            currentPanelIndex = (currentPanelIndex - 1 + numberOfPanels) % numberOfPanels;
+            // Show the previous panel
+            document.getElementById("panel-iframe-" + (currentPanelIndex + 1)).style.display="block";
+        }
+    </script>
+
+    <style>
+    .panel-iframe {
+        display: none;
+        width: 800px;
+        height: 600px;
+        border: none;
+    }
+    </style>
 
 {% endif %}
 {% endblock %}
