@@ -110,7 +110,9 @@ h4 {
 }
 
 h5 {
-    font-size: 1.15rem
+    font-size: 1.15rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.15rem
 }
 
 h6 {

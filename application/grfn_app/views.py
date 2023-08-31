@@ -53,7 +53,6 @@ def get_embed_url(grafana_server, dashboard_uid, dashboard_slug, panel_id):
     embed_url = f"{base_url}d-solo/{dashboard_uid}/{dashboard_slug}?orgId={org_id}&{url_params}"
     return embed_url
 
-
 def fetch_and_save_panel_data(grafana_server):
     # Fetch all starred dashboards and save their data to the database
     if grafana_server:
@@ -182,25 +181,28 @@ def main_dashboard(request):
 
         # If the 'action' field is present in the POST data, process the 'Select Dashboards' form submission
         if 'action' in request.POST:
-            selected_dashboards = request.POST.getlist('selected_dashboards')
+            selected_dashboards_uids = request.POST.getlist('selected_dashboards')
+            selected_dashboards_qs = Dashboard.objects.filter(dashboard_uid__in=selected_dashboards_uids)
 
-            if selected_dashboards and grafana_server:
-                # Fetch panel data from the database for the selected dashboards
-                for dashboard_uid in selected_dashboards:
-                    dashboard = Dashboard.objects.filter(dashboard_uid=dashboard_uid).first()
-                    if dashboard:
-                        # Get the panels associated with this dashboard from the database
-                        panels = Board.objects.filter(dashboard=dashboard)
-                        for panel in panels:
-                            panels_data.append({'id': panel.panel_id, 'title': panel.panel_title})
+            if selected_dashboards_qs:
+                request.session['selected_dashboards_uids'] = selected_dashboards_uids
 
-            # If the 'Select Panels' form is submitted, fetch the selected panel's embed URL and dashboard title
-            if 'action' in request.POST and 'selected_panels' in request.POST:
-                selected_panel_id = int(request.POST.get('selected_panels', ''))
-                selected_panel = Board.objects.filter(panel_id=selected_panel_id).first()
-                if selected_panel:
-                    embed_url = selected_panel.embed_url
-                    dashboard_title = selected_panel.dashboard.title
+                # Populate panels_data for the selected dashboards
+                panels_data += list(Board.objects.filter(dashboard__in=selected_dashboards_qs))
+
+        # If the 'Select Panels' form is submitted, fetch the selected panel's embed URL and dashboard title
+        if 'action' in request.POST and 'selected_panels' in request.POST:
+            selected_panels_ids = request.POST.getlist('selected_panels')
+
+            if selected_panels_ids:
+                selected_panel_id = request.POST.get('selected_panels', '')
+                if selected_panel_id.isdigit():
+                    selected_panel = Board.objects.filter(panel_id=int(selected_panel_id)).first()
+                else:
+                    pass
+            if selected_panel:
+                embed_url = selected_panel.embed_url
+                dashboard_title = selected_panel.dashboard.title
 
         # If the 'Select Time Range' form is submitted, save the selected time range to the database
         if 'action' in request.POST and 'time_range' in request.POST:
@@ -210,11 +212,33 @@ def main_dashboard(request):
                 panel.time_range = selected_time_range
                 panel.save()
 
-    # If the request is not a POST or no valid form data is submitted, display the dashboard as usual
+    # When no form data is submitted, 'selected_dashboards_uids' is fetched from the session data. If it's not
+    # present in the session, the function assigns an empty list to it.
+    selected_dashboards_uids = request.session.get('selected_dashboards_uids', [])
+    selected_dashboards_qs = Dashboard.objects.filter(dashboard_uid__in=selected_dashboards_uids)
+
+    if selected_dashboards_qs:
+        # Populate panels_data for the selected dashboards
+        panels_data += list(Board.objects.filter(dashboard__in=selected_dashboards_qs))
+
+    # Fetch 'selected_dashboards' if they are selected in the current POST request.
+    selected_dashboard_uids = request.POST.getlist('selected_dashboards')
+    if selected_dashboard_uids:
+        selected_dashboards = Dashboard.objects.filter(dashboard_uid__in=selected_dashboard_uids)
+        panels_data += list(Board.objects.filter(dashboard__in=selected_dashboards))
+
+    selected_panels_ids = [int(id) for id in request.POST.getlist('selected_panels')]
+    if selected_panels_ids:
+        selected_panels = Board.objects.filter(panel_id__in=selected_panels_ids)
+        request.session['selected_panels_ids'] = selected_panels_ids
+    else:
+        selected_panels = Board.objects.filter(panel_id__in=request.session.get('selected_panels_ids', []))
+
     return render(request, 'grfn_app/main_dashboard.html', {
         'grafana_server_url': grafana_server.url if grafana_server else None,
         'dashboards': Dashboard.objects.all(),
         'selected_dashboards': selected_dashboards,
+        'selected_panels': selected_panels,
         'dashboard_title': dashboard_title,
         'panels_data': panels_data,
         'embed_url': embed_url,
