@@ -1,4 +1,4 @@
-# .gihub/workflows/app_ci.yaml
+# .github/workflows/app_ci.yaml
 name: Application-related CI
 
 on:
@@ -52,7 +52,7 @@ jobs:
         DB_NAME: ${{ secrets.DB_NAME }}
         DB_USER: ${{ secrets.DB_USER }}
         DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        DB_HOST: 127.0.0.1
+        DB_HOST: localhost
         DB_PORT: 3306
         DEBUG: TRUE
         DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }} 
