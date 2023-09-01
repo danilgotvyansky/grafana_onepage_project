@@ -1,11 +1,11 @@
 # .github/workflow/ci_build-test.yaml
-name: Application-related CI
+name: Build&Test | Application-related CI
 
 on:
   pull_request:
     branches: [ "main" ]
     paths:
-      - "application/**"
+    - "application/**"
   workflow_dispatch:
 
 jobs:
