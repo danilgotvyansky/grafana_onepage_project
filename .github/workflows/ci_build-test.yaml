@@ -1,5 +1,5 @@
 # .github/workflow/ci_build-test.yaml
-name: Build&Test | Application-related CI
+name: Build&Test | Application CI
 
 on:
   pull_request:
