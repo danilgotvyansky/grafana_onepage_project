@@ -1,11 +1,11 @@
-# .github/workflows/app_ci.yaml
+# .github/workflow/ci_build-test.yaml
 name: Application-related CI
 
 on:
-  push:
+  pull_request:
     branches: [ "main" ]
     paths:
-    - "application/**"
+      - "application/**"
   workflow_dispatch:
 
 jobs:
@@ -40,7 +40,7 @@ jobs:
         mariadb \
         --character-set-server=utf8 --collation-server=utf8_bin \
         --init-file /docker-entrypoint-initdb.d/init.sql
-  
+
     - name: MariaDB Health Check
       run: |
         until echo 'SHOW DATABASES;' | docker exec -i mariadb mariadb -uroot -p${{ secrets.DB_ROOT_PASSWORD }} > /dev/null; do
@@ -62,16 +62,7 @@ jobs:
         DB_HOST: 0.0.0.0
         DB_PORT: 3306
         DEBUG: TRUE
-        DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }} 
+        DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
       run: |
         cd application
         python manage.py test
-
-    - name: Login to GitHub Container Registry
-      run: |
-        echo "${{ secrets.GIT_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-    - name: Build and Push Docker Image
-      run: |
-        docker build -t ghcr.io/danilgotvyansky/grafana_onepage_project:latest application
-        docker push ghcr.io/danilgotvyansky/grafana_onepage_project:latest
