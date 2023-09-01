@@ -1,11 +1,16 @@
-# .github/workflows/app_ci.yaml
 name: Application-related CI
 
 on:
-  push:
-    branches: [ "main" ]
+  pull_request:
+    branches:
+      - main
     paths:
-    - "application/**"
+      - "application/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "application/**"
   workflow_dispatch:
 
 jobs:
@@ -18,6 +23,10 @@ jobs:
         python-version: [3.x]
 
     steps:
+    - name: Check if PR commit
+      id: pr-check
+      run: echo "::set-output name=is_pr_commit::${{ github.event_name == 'pull_request' }}"
+    
     - uses: actions/checkout@v2
 
     - name: Set up Python ${{ matrix.python-version }}
@@ -40,7 +49,7 @@ jobs:
         mariadb \
         --character-set-server=utf8 --collation-server=utf8_bin \
         --init-file /docker-entrypoint-initdb.d/init.sql
-  
+
     - name: MariaDB Health Check
       run: |
         until echo 'SHOW DATABASES;' | docker exec -i mariadb mariadb -uroot -p${{ secrets.DB_ROOT_PASSWORD }} > /dev/null; do
@@ -62,7 +71,7 @@ jobs:
         DB_HOST: 0.0.0.0
         DB_PORT: 3306
         DEBUG: TRUE
-        DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }} 
+        DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
       run: |
         cd application
         python manage.py test
