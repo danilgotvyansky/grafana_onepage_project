@@ -26,6 +26,7 @@ class Board(models.Model):
     time_range = models.CharField(max_length=100, default='3h')
     custom_time_range = models.CharField(max_length=100, blank=True, null=True)
     selected = models.BooleanField(default=False)
+    slide_interval = models.PositiveIntegerField(default=0)
 
     class Meta:
         unique_together = ('panel_id', 'dashboard')

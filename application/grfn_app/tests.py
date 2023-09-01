@@ -2,14 +2,28 @@
 from django.test import TestCase
 import requests
 from django.conf import settings
-from unittest.mock import patch, Mock  # import the Mock class
+from unittest import mock
+from unittest.mock import patch, Mock
+from django.http import QueryDict
 from .models import GrafanaServer, Dashboard, Board
-from .views import adjust_url, fetch_and_save_panel_data  # import your views
+from .views import adjust_url, fetch_and_save_panel_data, main_dashboard
+
 
 # Create your tests here.
 
-# Tests that a GrafanaServer object can be retrieved from the database
 class TestGrafana(TestCase):
+    def test_create_dashboard_with_valid_title_and_uid(self):
+        dashboard = Dashboard(title="Prometheus 2.0 Overview",
+                              dashboard_uid="d7f68b55-fb58-401e-92d8-ca3402f9fee4",
+                              dashboard_slug="prometheus-2.0-overview")
+        dashboard.save()
+        self.assertIsNotNone(dashboard)
+        self.assertEqual(dashboard.title, "Prometheus 2.0 Overview")
+        self.assertEqual(dashboard.dashboard_uid, "d7f68b55-fb58-401e-92d8-ca3402f9fee4")
+        self.assertEqual(dashboard.dashboard_slug, "prometheus-2.0-overview")
+        self.assertEqual(len(dashboard.boards.all()), 0)
+        self.assertEqual(str(dashboard), "Prometheus 2.0 Overview")
+
     def test_retrieve_grafana_server_from_database(self):
         grafana_server = GrafanaServer(url="http://example.com", username="admin", password="password")
         grafana_server.save()
@@ -68,12 +82,10 @@ class TestGrafana(TestCase):
 
         self.assertTrue(response)
 
-
     @patch('grfn_app.views.requests.get', side_effect=requests.exceptions.RequestException)
     def test_adjust_url_unreachable(self, get_request):
         adjusted_url = adjust_url('http://example.com', 'username', 'password')
         self.assertIsNone(adjusted_url)
-
 
     @patch('grfn_app.views.requests.get')
     def test_adjust_url_https_capability(self, get_request):

@@ -1,12 +1,13 @@
 # application/grfn_app/views.py
 import base64
 import requests
-import logging
-from django.shortcuts import render,redirect
+# import logging
+from django.shortcuts import render, redirect
 from .models import GrafanaServer, Dashboard, Board
 from urllib.parse import urlparse
 from django.contrib import messages
 from django.db import connection
+from django.http import JsonResponse
 
 org_id = 1
 
@@ -25,7 +26,7 @@ def adjust_url(url, username, password):
         https_url = url.replace('http://', 'https://')
         api_url = f"{https_url}api/search"  # Checking the API endpoint directly
         headers = {
-           'Authorization': f"Basic {base64.b64encode(f'{username}:{password}'.encode()).decode()}"
+            'Authorization': f"Basic {base64.b64encode(f'{username}:{password}'.encode()).decode()}"
         }
         response = requests.get(api_url, headers=headers)
         if response.status_code == 200:
@@ -34,7 +35,7 @@ def adjust_url(url, username, password):
     except requests.exceptions.RequestException:
         # If requests fails, that means https is not supported
         try:
-            api_url = f"{url}api/search" # Checking the API endpoint directly
+            api_url = f"{url}api/search"
             headers = {
                 'Authorization': f"Basic {base64.b64encode(f'{username}:{password}'.encode()).decode()}"
             }
@@ -47,11 +48,13 @@ def adjust_url(url, username, password):
 
     return None
 
+
 def get_embed_url(grafana_server, dashboard_uid, dashboard_slug, panel_id):
     base_url = f"{grafana_server.url}"
     url_params = "&".join([f"panelId={panel_id}"])
     embed_url = f"{base_url}d-solo/{dashboard_uid}/{dashboard_slug}?orgId={org_id}&{url_params}"
     return embed_url
+
 
 def fetch_and_save_panel_data(grafana_server):
     # Fetch all starred dashboards and save their data to the database
@@ -136,6 +139,23 @@ def disconnect_grafana(request):
     return redirect('main_dashboard')
 
 
+def change_slide_interval(request):
+    selectedInterval = request.POST.get('new_slide_interval', None)
+
+    if selectedInterval is not None:
+        selectedInterval = int(selectedInterval)
+        selected_panels = Board.objects.all()
+        for panel in selected_panels:
+            panel.slide_interval = selectedInterval
+            panel.save()
+            # print(panel.slide_interval)
+
+        # Return success status
+        return JsonResponse({'status': 'success', 'message': 'Slide interval changed successfully'})
+    else:
+        return JsonResponse({'status': 'fail', 'message': 'Failed to change slide interval'})
+
+
 def main_dashboard(request):
     grafana_server = GrafanaServer.objects.first()
     selected_dashboards = []
@@ -211,6 +231,10 @@ def main_dashboard(request):
             for panel in panels:
                 panel.time_range = selected_time_range
                 panel.save()
+
+        # If the 'Update Interval' form is submitted, save the slide interval to database
+        if 'action' in request.POST and request.POST['action'] == 'Change Slide Interval':
+            return change_slide_interval(request)
 
     # When no form data is submitted, 'selected_dashboards_uids' is fetched from the session data. If it's not
     # present in the session, the function assigns an empty list to it.

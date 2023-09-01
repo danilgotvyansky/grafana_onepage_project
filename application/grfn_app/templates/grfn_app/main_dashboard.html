@@ -41,19 +41,26 @@ Grafana One-Page Dynamic Board
         <input type="submit" value="Reconnect to Grafana Server">
     </form>
     </div>
+    
+    <div>
+    <form id="change-interval-form" method="post">
+        {% csrf_token %}
+        <label for="interval-input">Enter slide-show interval in seconds (0 means no interval):</label>
+        <input type="number" min="0" step="1" id="interval-input" name="interval-input">
+        <input type="submit" name="action" value="Change Slide Interval"/>
+        {% for panel in selected_panels %}
+        <input type="hidden" name="selected_panels" value="{{ panel.panel_id }}">
+        {% endfor %}
+    </form>
 
-     <!-- Display selected panels -->
-    {% if selected_panels %}
-    <div id="selected-panels">
-        <h5>Selected Panels: </h5>
-        <div style="height:60px; overflow:auto;">
-            {% for panel in selected_panels %}
-                {{ panel.panel_title }} from {{ panel.dashboard.title }}<br>
-            {% endfor %}
+        <!-- 'Play' and 'Stop' buttons -->
+        <div>
+            <button id="btnPlay" onclick="startSlideshow()">Play</button>
+            <button id="btnStop" onclick="stopSlideshow()">Stop</button>
+            <div id="playStatus" style="display: none;">Playing...</div>
+            <div id="stopStatus">Stopped.</div>
         </div>
     </div>
-
-    {% endif %}
 
     <!-- Display a container having all the panels -->
     <div id="selected-panels-container">
@@ -65,6 +72,19 @@ Grafana One-Page Dynamic Board
     <!-- Buttons to switch between panels -->
     <button onclick="prevPanel()">Previous</button>
     <button onclick="nextPanel()">Next</button>
+
+    <!-- Display selected panels -->
+    {% if selected_panels %}
+    <div id="selected-panels">
+        <h5>Selected Panels: </h5>
+        <div style="height:60px; overflow:auto;">
+            {% for panel in selected_panels %}
+                {{ panel.panel_title }} from {{ panel.dashboard.title }}<br>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% endif %}
 
     <h3>Settings:</h3>
 
@@ -124,39 +144,110 @@ Grafana One-Page Dynamic Board
         </form>
     </div>
 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
     <script>
+        // Define global variables
+        let slideshowIntervalId;
+        let interval = 5000; // Default interval: 5 seconds
+        let numberOfPanels = parseInt("{{ selected_panels.count }}", 10);
+        let wasRunning = false; // Global flag to hold the state of the slideshow
+
+        // These functions control slide changes
+        let changePanel = (function(){
+            let currentPanelIndex = 0;
+            // Initializes by showing the first panel
+            document.getElementById("panel-iframe-1").style.display="block";
+            return function(delta){
+                // Hide the current panel
+                document.getElementById("panel-iframe-" + (currentPanelIndex + 1)).style.display="none";
+                // Increment the panel index
+                currentPanelIndex = (currentPanelIndex + delta + numberOfPanels) % numberOfPanels;
+                // Show the next panel
+                document.getElementById("panel-iframe-" + (currentPanelIndex + 1)).style.display="block";
+            };
+        })();
+
+        let nextPanel = function(){
+            changePanel(1);
+        };
+
+        let prevPanel = function(){
+            changePanel(-1);
+        };
+
+        function startSlideshow() {
+            document.getElementById("playStatus").style.display="block"; // Display "Playing..."
+            document.getElementById("stopStatus").style.display="none";  // Hide "Stopped"
+            // Show the first panel immediately
+            nextPanel();
+            // Update interval from DOM on every start
+            interval = document.getElementById("interval-input").value * 1000;
+            if (slideshowIntervalId) {
+                // Clear any previously set interval
+                clearInterval(slideshowIntervalId);
+            }
+            slideshowIntervalId = setInterval(nextPanel, interval);
+        }
+
+        function stopSlideshow() {
+            document.getElementById("playStatus").style.display="none"; // Hide "Playing..."
+            document.getElementById("stopStatus").style.display="block"; // Display "Stopped"
+            clearInterval(slideshowIntervalId);
+            console.log("Stopping slideshow..")
+            slideshowIntervalId = undefined;
+        }
+
         // Function to reload the page after submitting the "Select Panels" form
         function reloadPage() {
             setTimeout(function () {
                 location.reload();
             }, 100); // Adjust the timeout as needed
         }
-    </script>
 
-    <!-- JavaScript for switching between panels -->
-    <script>
-        let currentPanelIndex = 0;
-        let numberOfPanels = parseInt("{{ selected_panels.count }}", 10);
+        // Expose slideshow functions to the document
+        document.nextPanel = nextPanel;
+        document.prevPanel = prevPanel;
+        document.startSlideshow = startSlideshow;
+        document.stopSlideshow = stopSlideshow;
 
-        // Initially show the first panel
-        document.getElementById("panel-iframe-1").style.display="block";
+        // When form is submitted, prevent default behaviour, hide panels, set wasRunning flag and trigger AJAX call
+        document.getElementById('change-interval-form').addEventListener('submit', function(evt) {
+            evt.preventDefault(); // prevent the form from submitting normally
 
-        function nextPanel(){
-            // Hide the current panel
-            document.getElementById("panel-iframe-" + (currentPanelIndex + 1)).style.display="none";
-            // Increment the current panel index
-            currentPanelIndex = (currentPanelIndex + 1) % numberOfPanels;
-            // Show the next panel
-            document.getElementById("panel-iframe-" + (currentPanelIndex + 1)).style.display="block";
-        }
+            // Stop the slideshow if running
+            stopSlideshow();
 
-        function prevPanel(){
-            // Hide the current panel
-            document.getElementById("panel-iframe-" + (currentPanelIndex + 1)).style.display="none";
-            // Decrement the current panel index
-            currentPanelIndex = (currentPanelIndex - 1 + numberOfPanels) % numberOfPanels;
-            // Show the previous panel
-            document.getElementById("panel-iframe-" + (currentPanelIndex + 1)).style.display="block";
+            // Hide all panels before they're explicitly displayed again later
+            for (let i = 1; i <= numberOfPanels; i++) {
+                document.getElementById("panel-iframe-" + i).style.display = "none";
+            }
+            // Check if the slideshow was running
+            wasRunning = slideshowIntervalId !== undefined;
+            change_slide_interval();
+        });
+
+        // AJAX call to change the slide interval
+        function change_slide_interval() {
+            let selectedInterval = document.getElementById("interval-input").value;
+            $.ajax({
+                url: '{% url 'change_slide_interval' %}', // the endpoint
+                type: 'POST', // http method
+                data: {
+                    'csrfmiddlewaretoken': document.getElementsByName('csrfmiddlewaretoken')[0].value,
+                    'new_slide_interval': selectedInterval
+                },
+                success: function(response) {
+                    // start the slide show again if it was running
+                    if (wasRunning) {
+                        console.log("AJAX call successful, starting slideshow");
+                        startSlideshow();
+                    }
+                },
+                error: function(response) {
+                    console.log("An error occurred while trying to update the slide interval value in the database.");
+                }
+            });
         }
     </script>
 
