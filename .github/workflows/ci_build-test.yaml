@@ -75,12 +75,3 @@ jobs:
       run: |
         cd application
         python manage.py test
-
-    - name: Login to GitHub Container Registry
-      run: |
-        echo "${{ secrets.GIT_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-    - name: Build and Push Docker Image
-      run: |
-        docker build -t ghcr.io/danilgotvyansky/grafana_onepage_project:latest application
-        docker push ghcr.io/danilgotvyansky/grafana_onepage_project:latest
