@@ -1,5 +1,5 @@
 # .github/workflows/ci_build-push.yaml
-name: Application-related CI
+name: Build&Push | Application CI
 
 on:
   push:
