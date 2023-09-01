@@ -2,13 +2,7 @@ name: Application-related CI
 
 on:
   pull_request:
-    branches:
-      - main
-    paths:
-      - "application/**"
-  push:
-    branches:
-      - main
+    branches: [ "main" ]
     paths:
       - "application/**"
   workflow_dispatch:
@@ -23,10 +17,6 @@ jobs:
         python-version: [3.x]
 
     steps:
-    - name: Check if PR commit
-      id: pr-check
-      run: echo "::set-output name=is_pr_commit::${{ github.event_name == 'pull_request' }}"
-    
     - uses: actions/checkout@v2
 
     - name: Set up Python ${{ matrix.python-version }}
