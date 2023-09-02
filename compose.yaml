@@ -1,0 +1,54 @@
+# compose.yaml
+services:
+  mariadb:
+    image: mariadb
+    env_file:
+      - .env
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "${DB_PORT}:3306"
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8
+      - --collation-server=utf8_bin
+      - --init-file=/docker-entrypoint-initdb.d/init.sql
+  
+
+  application:
+    image: ghcr.io/danilgotvyansky/grafana_onepage_project:latest-app
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    links:
+      - mariadb:mariadb
+    restart: unless-stopped
+    environment:
+      DB_HOST: mariadb
+    command: sh -c "./wait-for-it.sh mariadb:${DB_PORT} -t 45 && python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./wait-for-it.sh:/app/wait-for-it.sh:ro
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_INSTALL_PLUGINS: grafana-clock-panel
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prom/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter
+    ports:
+      - "9100:9100"
+    restart: unless-stopped

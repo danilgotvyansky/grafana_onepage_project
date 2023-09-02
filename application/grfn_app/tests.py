@@ -1,10 +1,7 @@
 # application/grfn_app/tests.py
 from django.test import TestCase
 import requests
-from django.conf import settings
-from unittest import mock
 from unittest.mock import patch, Mock
-from django.http import QueryDict
 from .models import GrafanaServer, Dashboard, Board
 from .views import adjust_url, fetch_and_save_panel_data, main_dashboard
 
