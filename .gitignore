@@ -4,4 +4,3 @@ venv
 .vagrant
 *.retry
 __pycache__
-migrations
