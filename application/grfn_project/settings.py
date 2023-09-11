@@ -28,6 +28,9 @@ DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = ['*']
 
+# Pass this variable as a list of values in format: 'http://localhost', 'http://docker.for.mac.localhost'
+CSRF_TRUSTED_ORIGINS = [env('DJANGO_CSRF_TRUSTED_ORIGINS')]
+
 # Application definition
 
 INSTALLED_APPS = [

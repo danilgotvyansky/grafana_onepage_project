@@ -63,6 +63,7 @@ jobs:
         DB_PORT: 3306
         DEBUG: TRUE
         DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+        DJANGO_CSRF_TRUSTED_ORIGINS: ${{ secrets.DJANGO_CSRF_TRUSTED_ORIGINS }}
       run: |
         cd application
         python manage.py test
