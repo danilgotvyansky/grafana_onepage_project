@@ -1,54 +1,124 @@
 # compose.yaml
 services:
-  mariadb:
+
+  nginx:
+    image: nginx
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      mynetwork:
+        ipv4_address: 172.19.10.1
+
+  mariadb1:
     image: mariadb
     env_file:
       - .env
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./mariadb/my1.cnf:/etc/mysql/my.cnf
     ports:
-      - "${DB_PORT}:3306"
+      - "${DB_PORT1}:3306"
     restart: unless-stopped
     command:
       - --character-set-server=utf8
       - --collation-server=utf8_bin
-      - --init-file=/docker-entrypoint-initdb.d/init.sql
-  
+    networks:
+      mynetwork:
+        ipv4_address: 172.19.10.2
 
-  application:
+  mariadb2:
+    image: mariadb
+    env_file:
+      - .env
+    volumes:
+      - ./mariadb/my2.cnf:/etc/mysql/my.cnf
+    ports:
+      - "${DB_PORT2}:3306"
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8
+      - --collation-server=utf8_bin
+    networks:
+      mynetwork:
+        ipv4_address: 172.19.10.22
+
+  application1:
     image: ghcr.io/danilgotvyansky/grafana_onepage_project:latest-app
     env_file:
       - .env
     ports:
       - "8000:8000"
-    links:
-      - mariadb:mariadb
     restart: unless-stopped
     environment:
-      DB_HOST: mariadb
-    command: sh -c "./wait-for-it.sh mariadb:${DB_PORT} -t 45 && python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+      DB_HOST: mariadb1
+    command: sh -c "./wait-for-it.sh mariadb1:${DB_PORT1} -t 45 && python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./wait-for-it.sh:/app/wait-for-it.sh:ro
+    networks:
+      mynetwork:
+        ipv4_address: 172.19.10.3
+
+  application2:
+    image: ghcr.io/danilgotvyansky/grafana_onepage_project:latest-app
+    env_file:
+      - .env
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+    environment:
+      DB_HOST: mariadb2
+    command: sh -c "./wait-for-it.sh mariadb2:${DB_PORT} -t 45 && python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./wait-for-it.sh:/app/wait-for-it.sh:ro
+    networks:
+      mynetwork:
+        ipv4_address: 172.19.10.33
 
   grafana:
     image: grafana/grafana
+    env_file:
+      - .env
     ports:
       - "3000:3000"
     environment:
-      GF_INSTALL_PLUGINS: grafana-clock-panel
       GF_SECURITY_ALLOW_EMBEDDING: "true"
+      PROMETHEUS_HOST: prometheus
+      PROMETHEUS_PORT: 9090
     restart: unless-stopped
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      mynetwork:
+        ipv4_address: 172.19.10.4
 
   prometheus:
     image: prom/prometheus
     ports:
       - "9090:9090"
+    environment:
+      NODE_EXPORTER_HOST: node-exporter
     volumes:
       - ./prom/prometheus.yml:/etc/prometheus/prometheus.yml
     restart: unless-stopped
+    networks:
+      mynetwork:
+        ipv4_address: 172.19.10.5
 
   node-exporter:
     image: prom/node-exporter
     ports:
       - "9100:9100"
     restart: unless-stopped
+    networks:
+      mynetwork:
+        ipv4_address: 172.19.10.6
+
+networks:
+  mynetwork:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.19.10.0/16
