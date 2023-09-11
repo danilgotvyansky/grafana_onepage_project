@@ -12,7 +12,6 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    environment: dev
     strategy:
       max-parallel: 4
       matrix:
@@ -64,7 +63,7 @@ jobs:
         DB_PORT: 3306
         DEBUG: TRUE
         DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-        DJANGO_CSRF_TRUSTED_ORIGINS: ${{env.DJANGO_CSRF_TRUSTED_ORIGINS}}
+        DJANGO_CSRF_TRUSTED_ORIGINS: ${{ secrets.DJANGO_CSRF_TRUSTED_ORIGINS }}
       run: |
         cd application
         python manage.py test
