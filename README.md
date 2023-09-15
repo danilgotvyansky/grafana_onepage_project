@@ -213,4 +213,4 @@ CI/CD is represented by:
 
 \* `latest-app` tag is used because later there custom images of other services might be built in future.
 
-**CD** part will be creates later once there will be public hosting of this project.
+**CD** part will be created later once there will be public hosting of this project.
