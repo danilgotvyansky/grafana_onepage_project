@@ -100,7 +100,7 @@ Services that produces the local cluster can be found in the [compose.yaml](comp
 It consists of:
 * [Nginx](#nginx) container.
 * Two [application](#application-description) containers.
-* Two [MariaDB](#mariadb) containers.
+* Two **MariaDB** containers.
 * [Grafana](#grafana) container.
 * [Prometheus](#prometheus) container.
 * [Node-exporter](#node-exporter) container.
