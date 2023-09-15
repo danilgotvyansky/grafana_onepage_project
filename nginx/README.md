@@ -1,5 +1,5 @@
-# Grafana #
+# Nginx #
 
-## [Description](/README.md#grafana) ##
+## [Description](/README.md#nginx) ##
 
 ## [Local cluster provisioning](/README.md#local-cluster-provisioning) ##

@@ -1,3 +1,1 @@
-# Application description #
-
-## Grafana One-Page Dynamic Board portfolio application ##
+# [Application description](/README.md#application-description) #
