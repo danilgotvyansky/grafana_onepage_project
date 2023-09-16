@@ -5,7 +5,7 @@ Grafana One-Page Dynamic Board portfolio project by Danylo Hotvianskyi. Stack: D
 
 ### Application description ###
 
-The [application](/application) is a form of dynamic Grafana panel viewer. It connects to a [Grafana server](#grafana), fetches certain dashboard and panel details, and displays them using a slideshow. It provides users the ability to control the slideshow and choose the time interval between the slides. The application leverages Django's ORM to store information related to the server, dashboards, and panels, and provides an interactive interface to control and view the data.
+The [application](/application) is a form of dynamic Grafana panel viewer. It [connects](#connect-to-grafana) to a [Grafana server](#grafana), [fetches](#select-dashboards-and-select-panels) certain dashboard and panel details, and displays them using a [slideshow](#slide-show). It provides users the ability to control the slideshow, choose the time interval between the slides and change [time-range](#time-range) of the displayed panel. The application leverages Django's ORM to store information related to the server, dashboards, and panels, and provides an interactive interface to control and view the data.
   
   P.S. I am not a good tester and frontender, so don't judge me strong for those please :)
 
@@ -195,16 +195,16 @@ echo "0.0.0.0    grafana-app.local.com" >> /etc/hosts
 
 ### Gif demos ###
 
-**Connect to grafana**
+#### Connect to grafana ####
 ![connect-to-grafana](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/3cecba23-af36-437c-af56-517b4db63be3)
 
-**Select Dashboards** and **Select Panels**
+#### Select Dashboards and Select Panels ####
 ![select](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/3735c10f-0b1f-413e-abb0-10dc69813049)
 
-**Time range**
+#### Time range ####
 ![time-range](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/bb8bfa4a-a41b-4e65-8bb7-5fa207252e5d)
 
-**Slide-show**
+#### Slide-show ####
 ![slide-show](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/c854b8ed-884c-4e98-8327-7cede28bf178)
 
 ### CI/CD ###
