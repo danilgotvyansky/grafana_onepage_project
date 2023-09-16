@@ -193,8 +193,19 @@ echo "0.0.0.0    grafana-app.local.com" >> /etc/hosts
 5. Enter [http://localhost:3000](http://localhost:3000) to the **Grafana Server URL** and other details of the created test user using the `GRAFANA_USER` and `GRAFANA_USER_PASSWORD` values from the `.env` file.
 6. Select Dashboards, panels and feel free to use all other application features.
 
-### Video demo ###
-<\There will be a video demo>
+### Gif demos ###
+
+**Connect to grafana**
+![connect-to-grafana](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/3cecba23-af36-437c-af56-517b4db63be3)
+
+**Select Dashboards** and **Select Panels**
+![select](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/3735c10f-0b1f-413e-abb0-10dc69813049)
+
+**Time range**
+![time-range](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/bb8bfa4a-a41b-4e65-8bb7-5fa207252e5d)
+
+**Slide-show**
+![slide-show](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/c854b8ed-884c-4e98-8327-7cede28bf178)
 
 ### CI/CD ###
 
