@@ -5,9 +5,9 @@ Grafana One-Page Dynamic Board portfolio project by Danylo Hotvianskyi. Stack: D
 
 ### Application description ###
 
-The [application](/application) is a form of dynamic Grafana panel viewer. It [connects](#connect-to-grafana) to a [Grafana server](#grafana), [fetches](#select-dashboards-and-select-panels) certain dashboard and panel details, and displays them using a [slideshow](#slide-show). It provides users the ability to control the slideshow, choose the time interval between the slides and change [time-range](#time-range) of the displayed panel. The application leverages Django's ORM to store information related to the server, dashboards, and panels, and provides an interactive interface to control and view the data.
+The [application](/application) is a form of dynamic Grafana panel viewer. It [connects](#connect-to-grafana) to a [Grafana server](#grafana), [fetches](#select-dashboards-and-select-panels) certain dashboard and panel details, and displays them using a [slideshow](#slide-show). It provides users the ability to control the slideshow, choose the time interval between the slides, and change [time-range](#time-range) of the displayed panel. The application leverages Django's ORM to store information related to the server, dashboards, and panels and provides an interactive interface to control and view the data.
   
-  P.S. I am not a good tester and frontender, so don't judge me strong for those please :)
+  P.S. I am not a good tester and frontender, so don't judge me strongly for those, please :)
 
 <details> 
  <summary>Expand for detailed description</summary> 
@@ -129,7 +129,7 @@ See [Local cluster provisioning](#local-cluster-provisioning) for detailed instr
   * Image: [grafana/grafana](https://hub.docker.com/r/grafana/grafana)
   
   #### Prometheus ####
-  * Prometheus is used to scrape all hosts performance metrics using the exporters.
+  * Prometheus is used to scrape all host performance metrics using the exporters.
   * [prometheus.yml](prom/prometheus.yml) maps the exporter endpoint using the docker network aliases.
   * Image: [prom/prometheus](https://hub.docker.com/r/prom/prometheus)
 
@@ -138,7 +138,7 @@ See [Local cluster provisioning](#local-cluster-provisioning) for detailed instr
   * Image: [prom/node-exporter](https://hub.docker.com/r/prom/node-exporter)
   
   #### Docker network ####
-  * There is custom `mynetwork` created and assigned to each cluster service.
+  * There is a custom `mynetwork` created and assigned to each cluster service.
 
 </details>
 
@@ -196,27 +196,27 @@ echo "0.0.0.0    grafana-app.local.com" >> /etc/hosts
 ### Gif demos ###
 
 #### Connect to grafana ####
-![connect-to-grafana](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/3cecba23-af36-437c-af56-517b4db63be3)
+![connect-to-grafana](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/65d7e8e4-006d-455e-b328-afee79f76f40)
 
 #### Select Dashboards and Select Panels ####
-![select](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/3735c10f-0b1f-413e-abb0-10dc69813049)
+![select](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/565107ef-da29-47a4-97dd-7515657562a3)
 
 #### Time range ####
-![time-range](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/bb8bfa4a-a41b-4e65-8bb7-5fa207252e5d)
+![time-range](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/05731383-d3e6-478f-8f6e-9dfe07b81d6a)
 
 #### Slide-show ####
-![slide-show](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/c854b8ed-884c-4e98-8327-7cede28bf178)
+![slide-show](https://github.com/danilgotvyansky/grafana_onepage_project/assets/122215118/e73f55fb-aaa3-46e7-9391-1863d96c3125)
 
 ### CI/CD ###
 
 CI/CD is represented by:
-* [ci_build-test.yaml](.github/workflows/ci_build-test.yaml) - is triggered once there any **pull request** opened to compare with main branch and if there are any changes in the `application/*` path. 
+* [ci_build-test.yaml](.github/workflows/ci_build-test.yaml) - is triggered once any **pull request** is opened to compare with the main branch and if there are any changes in the `application/*` path. 
   * Workflow sets up the *MariaDB* server for application testing including the permissions for the test user configuration.
   * Displays the database status for debugging.
   * Installs the application dependencies.
   * Run tests from [tests.py](application/tests.py).
   * All environmental variables are being fetched from the **GitHub Actions Repository secrets**.
-  * Successful workflow run should indicate developers that the changes are ready for review and further merge.
+  * Successful workflow run should indicate to developers that the changes are ready for review and further merge.
 * [ci_build-push.yaml](.github/workflows/ci_build-push.yaml) - is triggered on **push** to the `main` branch and if there are any changes in the `application/*` path.
   * Workflow authenticates to the **GitHub Container Registry**.
   * Builds the image out of the [application](/application) directory using [Dockerfile](application/Dockerfile) and assigns the `latest-app`* tag to it.
@@ -224,4 +224,4 @@ CI/CD is represented by:
 
 \* `latest-app` tag is used because later there custom images of other services might be built in future.
 
-**CD** part will be created later once there will be public hosting of this project.
+**CD** part will be created later once there is public hosting of this project.
